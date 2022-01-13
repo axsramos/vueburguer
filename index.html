@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Quiosque</title>
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+
+    <!-- Vue JS -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+</head>
+<body>
+    
+    <div class="container mt-3" id="app">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card text-center" v-if="pedidos.length == 0">
+                    <div class="card-header">
+                        Nenhum Pedido
+                    </div>
+                    <div class="card-body" style="height: 510px; overflow-y: auto;">
+                        <div class="alert alert-info" role="alert">
+                            A lista de pedidos está vazia.
+                        </div>
+                    </div>
+                </div>
+                <div class="card text-center" v-for="pedido in pedidos"  v-if="pedidos.length != 0" v-show="pedido.numero == pedidoAtual">
+                    <div class="card-header">
+                        <a href="#" class="btn btn-default" v-on:click.prevent.stop="SelecionarPedidoAnterior">Anterior</a>
+                        Pedido Nº {{ pedido.numero }}
+                        <a href="#" class="btn btn-default" v-on:click.prevent.stop="SelecionarPedidoProximo">Próximo</a>
+                    </div>
+                    <div class="card-body" style="height: 510px; overflow-y: auto;">
+                        <h5 class="card-title">Detalhes do Pedido</h5>
+                        <div class="alert alert-warning" role="alert" v-if="pedido.status == 'Pedido Aberto'">
+                        Pedido em Aberto!
+                        </div>
+                        <div class="alert alert-success" role="alert" v-if="pedido.status == 'Pedido Encerrado'">
+                        Pedido Encerrado!
+                        </div>
+                        <div class="alert alert-danger" role="alert" v-if="pedido.status == 'Pedido Cancelado'">
+                        Pedido em Cancelado!
+                        </div>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                <th scope="col">QTD</th>
+                                <th scope="col">Item</th>
+                                <th scope="col">Valor</th>
+                                <th scope="col">SubTotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="item in pedido.itens">
+                                <th scope="row">{{ item.quantidade }}</th>
+                                <td class="text-left">{{ item.produto }}</td>
+                                <td>{{ item.valorUnitario | filCurrency(item.valorUnitario) }}</td>
+                                <td>{{ item.subTotal | filCurrency(item.subTotal) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td class="text-left">Total do Pedido</td>
+                                    <td>{{ pedido.totalDoPedido | filCurrency(pedido.totalDoPedido) }}</td>
+                                </tr>
+                                <tr v-for="recebimento in pedido.recebimentos">
+                                    <td class="text-left">{{ recebimento.formaDePagamento }}</td>
+                                    <td>{{ recebimento.valor | filCurrency(recebimento.valor)}}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-left">Total Recebido</td>
+                                    <td>{{ pedido.totalRecebido | filCurrency(pedido.totalRecebido)}}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-left">Troco</td>
+                                    <td>{{ pedido.troco | filCurrency(pedido.troco) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer text-muted">
+                        <span>Total do Pedido R$ </span>{{ pedido.totalDoPedido }}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card text-center">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <a v-bind:class="classeCategoria.Ofertas" href="#" v-on:click.prevent.stop="SelecionarCategoria('Ofertas')">Ofertas</a>
+                        </li>
+                        <li class="nav-item">
+                            <a v-bind:class="classeCategoria.Hamburgueres" href="#" v-on:click.prevent.stop="SelecionarCategoria('Hamburgueres')">Hamburgueres</a>
+                        </li>
+                        <li class="nav-item">
+                            <a v-bind:class="classeCategoria.Acompanhamentos" href="#" v-on:click.prevent.stop="SelecionarCategoria('Acompanhamentos')">Acompanhamentos</a>
+                        </li>
+                        <li class="nav-item">
+                            <a v-bind:class="classeCategoria.Bebidas" href="#" v-on:click.prevent.stop="SelecionarCategoria('Bebidas')">Bebidas</a>
+                        </li>
+                        <li class="nav-item">
+                            <a v-bind:class="classeCategoria.Sobremesas" href="#" v-on:click.prevent.stop="SelecionarCategoria('Sobremesas')">Sobremesas</a>
+                        </li>
+                        <li class="nav-item">
+                            <a v-bind:class="classeCategoria.Pedidos" href="#" v-on:click.prevent.stop="SelecionarCategoria('Pedidos')">Pedidos</a>
+                        </li>
+                        </ul>
+                    </div>
+                    <div class="card-body" style="height: 500px; overflow-y: auto;">
+                        <div class="row">
+                            <div class="container" v-if="exibirSessao == 'produtos'">
+                                <div class="row">
+                                    <div class="col-sm-6 mb-3" v-for="(produto, index) in produtos" v-if="produto.categoria == categoriaSelecionada">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h5 class="card-title">{{ produto.nome }}</h5>
+                                                <img v-bind:src="produto.imagem" v-bind:alt="produto.nome" style="max-width: 150px;">
+                                                <p class="card-text text-success">{{ produto.preco | filCurrency(produto.preco) }}</p>
+                                                <p class="card-text">{{ produto.descricao }}</p>
+                                                <a href='#' class="btn btn-primary" v-on:click.prevent.stop="AdicionarProdutoAoPedido(produto.id)">Adicionar</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" v-if="exibirSessao == 'calculadora'">
+                            <div class="row">
+                                <div class="col-sm-6 mb-3">
+                                    <div class="row">
+                                        <div class="col-sm-4 mb-3">
+                                            <div class="">
+                                            <div class="card-default">
+                                                <a href="#" class="btn btn-secondary" style="width: 85px; height: 65px; padding-top: 20px;" v-on:click="TecladoValorDigitado('7')">7</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 mb-3">
+                                            <div class="">
+                                            <div class="card-default">
+                                                <a href="#" class="btn btn-secondary" style="width: 85px; height: 65px; padding-top: 20px;" v-on:click="TecladoValorDigitado('8')">8</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 mb-3">
+                                            <div class="">
+                                            <div class="card-default">
+                                                <a href="#" class="btn btn-secondary" style="width: 85px; height: 65px; padding-top: 20px;" v-on:click="TecladoValorDigitado('9')">9</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-4 mb-3">
+                                            <div class="">
+                                            <div class="card-default">
+                                                <a href="#" class="btn btn-secondary" style="width: 85px; height: 65px; padding-top: 20px;" v-on:click="TecladoValorDigitado('4')">4</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 mb-3">
+                                            <div class="">
+                                            <div class="card-default">
+                                                <a href="#" class="btn btn-secondary" style="width: 85px; height: 65px; padding-top: 20px;" v-on:click="TecladoValorDigitado('5')">5</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 mb-3">
+                                            <div class="">
+                                            <div class="card-default">
+                                                <a href="#" class="btn btn-secondary" style="width: 85px; height: 65px; padding-top: 20px;" v-on:click="TecladoValorDigitado('6')">6</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-4 mb-3">
+                                            <div class="">
+                                            <div class="card-default">
+                                                <a href="#" class="btn btn-secondary" style="width: 85px; height: 65px; padding-top: 20px;" v-on:click="TecladoValorDigitado('1')">1</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 mb-3">
+                                            <div class="">
+                                            <div class="card-default">
+                                                <a href="#" class="btn btn-secondary" style="width: 85px; height: 65px; padding-top: 20px;" v-on:click="TecladoValorDigitado('2')">2</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 mb-3">
+                                            <div class="">
+                                            <div class="card-default">
+                                                <a href="#" class="btn btn-secondary" style="width: 85px; height: 65px; padding-top: 20px;" v-on:click="TecladoValorDigitado('3')">3</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-4 mb-3">
+                                            <div class="">
+                                            <div class="card-default">
+                                                <a href="#" class="btn btn-secondary" style="width: 85px; height: 65px; padding-top: 20px;" v-on:click="TecladoValorDigitadoDel()">DEL</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 mb-3">
+                                            <div class="">
+                                            <div class="card-default">
+                                                <a href="#" class="btn btn-secondary" style="width: 85px; height: 65px; padding-top: 20px;" v-on:click="TecladoValorDigitado('0')">0</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 mb-3">
+                                            <div class="">
+                                            <div class="card-default">
+                                                <a href="#" class="btn btn-secondary" style="width: 85px; height: 65px; padding-top: 20px;" v-on:click="TecladoValorDigitadoEnt()">Enter</a>
+                                            </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 mb-3">
+                                    <div class="row">
+                                        <div class="col-sm-12 mb-3">
+                                            <div class="form-group row">
+                                                <label for="inputValorDigitado" class="col-sm-6 col-form-label">Valor Digitado</label>
+                                                <div class="col-sm-6">
+                                                    <input type="number" class="form-control" id="inputValorDigitado" v-model="valorDigitado" placeholder="0,00">
+                                                </div>
+                                            </div>
+                                            <div class="form-group row">
+                                                <label for="inputSaldoRestante" class="col-sm-6 col-form-label">Saldo Restante</label>
+                                                <div class="col-sm-6">
+                                                    <input type="number" class="form-control" id="inputSaldoRestante" placeholder="0,00" v-bind:value="CalcularSaldoRestante()">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-6 mb-3">
+                                            <button class="btn btn-secondary btn-block" v-on:click.prevent.stop="FecharPedido()">Fechar Pedido</button>
+                                        </div>
+                                        <div class="col-sm-6 mb-3">
+                                            <button class="btn btn-success btn-block" v-on:click.prevent.stop="RegistrarDinheiro()">Dinheiro</button>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-4 mb-3">
+                                            <button class="btn btn-danger btn-block" v-on:click.prevent.stop="RegistrarDebito()">Débito</button>
+                                        </div>
+                                        <div class="col-sm-4 mb-3">
+                                            <button class="btn btn-warning btn-block" v-on:click.prevent.stop="RegistrarCredito()">Crédito</button>
+                                        </div>
+                                        <div class="col-sm-4 mb-3">
+                                            <button class="btn btn-info btn-block" v-on:click.prevent.stop="RegistrarRefeicao()">Refeição</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" v-if="exibirSessao == 'pedidos'">
+                            <div class="accordion" id="accordionPedido" style="width: 100%;">
+                                <div class="card" v-for="pedido in pedidos">
+                                    <div class="card-header" id="headingOne">
+                                        <h5 class="mb-0">
+                                        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                            Lista do Pedido {{ pedido.numero }}
+                                        </button>
+                                        </h5>
+                                    </div>
+                                    <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordionPedido">
+                                        <table class="table">
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                <th scope="col">Pedido Nº {{ pedido.numero }}</th>
+                                                <th scope="col" style="text-align: left;"><span class="text-warning" v-show="pedido.status == 'Pedido Aberto'">{{ pedido.status }}</span><span class="text-success" v-show="pedido.status == 'Pedido Encerrado'">{{ pedido.status }}</span><span class="text-danger" v-show="pedido.status == 'Pedido Cancelado'">{{ pedido.status }}</span> &nbsp;<a type="button" class="btn btn-outline-warning" v-if="pedido.status == 'Pedido Aberto'" v-on:click.prevent.stop="cancelarPedido(pedido.numero)">Cancelar</a></th>
+                                                <th scope="col">{{ pedido.totalDoPedido }}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="item in pedido.itens">
+                                                    <th scope="row"><img v-bind:src="item.imagem" v-bind:alt="item.produto" style="max-width: 150px;"></th>
+                                                    <td class="text-left"><h5 class="card-title">{{ item.produto }}</h5><p class="card-text">{{ item.descricao }}</p></td>
+                                                    <td style="min-width: 160px;">{{ item.subTotal }}<button class="btn btn-danger btn-block mt-3" v-bind:class="pedido.status != 'Pedido Aberto' ? 'disabled':''" v-on:click.prevent.stop="removerItemDoPedido(pedido.numero,item.produto)">Remover</button></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="#" class="btn btn-default" v-on:click.prevent.stop="SelecionarSessao('pedidos')">Pedidos</a>
+                        <div class="btn-group btn-group-toggle" data-toggle="buttons"  v-on:click.prevent.stop="SelecionarQuantidade($event)">
+                            <label class="btn btn-secondary">
+                                <input type="radio" name="options" id="option1" autocomplete="off" checked> 1
+                            </label>
+                            <label class="btn btn-secondary">
+                                <input type="radio" name="options" id="option2" autocomplete="off"> 2
+                            </label>
+                            <label class="btn btn-secondary">
+                                <input type="radio" name="options" id="option3" autocomplete="off"> 3
+                            </label>
+                            <label class="btn btn-secondary">
+                                <input type="radio" name="options" id="option4" autocomplete="off"> 4
+                            </label>
+                            <label class="btn btn-secondary">
+                                <input type="radio" name="options" id="option5" autocomplete="off"> 5
+                            </label>
+                            <label class="btn btn-secondary">
+                                <input type="radio" name="options" id="option6" autocomplete="off"> 6
+                            </label>
+                            <label class="btn btn-secondary">
+                                <input type="radio" name="options" id="option7" autocomplete="off"> 7
+                            </label>
+                            <label class="btn btn-secondary">
+                                <input type="radio" name="options" id="option8" autocomplete="off"> 8
+                            </label>
+                            <label class="btn btn-secondary">
+                                <input type="radio" name="options" id="option9" autocomplete="off"> 9
+                            </label>
+                        </div>
+                        <a href="#" class="btn btn-default" v-on:click.prevent.stop="SelecionarSessao('calculadora')">Totalizar</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vue JS -->
+    <script>
+        var app = new Vue({
+            el: "#app",
+            data: {
+                produtos: [
+                    { categoria:"Ofertas", id:1, nome:"Combo", preco:29.8, imagem:"images/Combo.png", descricao:"Combo Burger com Hamburguer + Refrigerante Free Refill + French Fries." },
+                    { categoria:"Hamburgueres", id:2, nome:"Big Burger", preco:8.5, imagem:"images/BigBurger.png", descricao:"Dois Hamburgueres, Alface, Queijo, Molho Especial, Cebola e Picles em um Pão com Gergelin." },
+                    { categoria:"Hamburgueres", id:3, nome:"Cheese Salad Burger", preco:9.5, imagem:"images/CheeseBurger.png", descricao:"Hamburguer, Alface, Queijo, Tomate, Molho Maionase, Cebola, Bacon e Picles em um Pão com Gergelin." },
+                    { categoria:"Hamburgueres", id:4, nome:"Chicken Burger", preco:6.5, imagem:"images/ChickenBurger.png", descricao:"Empanado de Frango, Alface, Molho Maionase, em um Pão com Gergelin." },
+                    { categoria:"Hamburgueres", id:5, nome:"HotDog", preco:4.5, imagem:"images/HotDog.png", descricao:"Salsicha Especial com Molho Maionase, Batata Palha em um Pão de Hot Dog." },
+                    { categoria:"Acompanhamentos", id:6, nome:"Chicken Nuggets", preco:8.5, imagem:"images/ChickenNuggets.png", descricao:"Empanado de Frango em Porções com Molho Especial." },
+                    { categoria:"Acompanhamentos", id:7, nome:"French Fries", preco:7.65, imagem:"images/FrenchFries.png", descricao:"Batatas Frita Tradicional Palitos em Porção." },
+                    { categoria:"Bebidas", id:8, nome:"Milkshake", preco:8.5, imagem:"images/Milkshake.png", descricao:"Milkshake em sabores Baunilha, Morango e Chocolate." },
+                    { categoria:"Sobremesas", id:9, nome:"Cupcake", preco:6.5, imagem:"images/Cupcake.png", descricao:"Delicioso Bolinho Confeitado. Sabores de Baunilha e Chocolate Premium." },
+                ],
+                pedidos: [],
+                categoriaSelecionada: "Ofertas",
+                classeCategoria: { Ofertas:"nav-link active", Hamburgueres:"nav-link", Acompanhamentos:"nav-link", Bebidas:"nav-link", Sobremesas:"nav-link", Pedidos:"nav-link" },
+                exibirSessao: "produtos",
+                quantidadeSelecionada: 1,
+                pedidoAtual:0,
+				valorDigitado:0.00
+            },
+            methods: {
+                AdicionarProdutoAoPedido: function(id_produto){
+                    var criarPedido = false;
+                    if(this.pedidos.length == 0){
+                        this.pedidoAtual = 1;
+                        var vNumero = this.pedidoAtual;
+                        this.pedidos.push(
+                            {
+                                status:"Pedido Aberto", numero:vNumero, itens:[], totalDoPedido:0, recebimentos:[], totalRecebido:0, troco:0
+                            }
+                        );
+                    } else {
+                        if(this.pedidoAtual > 0){
+                            var vNumero = this.pedidoAtual - 1;
+                            if (this.pedidos[vNumero].status != "Pedido Aberto"){
+                                var i = 0;
+                                var criarPedido = true;
+                                while(i < this.pedidos.length){
+                                    if(this.pedidos[i].status == "Pedido Aberto"){
+                                        this.pedidoAtual = this.pedidos[i].numero;
+                                        criarPedido = false;
+                                        break;
+                                    }
+                                    i++;
+                                }
+                            }
+                        }
+                    }
+                    if(criarPedido == true){
+                        this.pedidoAtual = 1 + this.pedidos.length;
+                        var vNumero = this.pedidoAtual;
+                        this.pedidos.push(
+                            {
+                                status:"Pedido Aberto", numero:vNumero, itens:[], totalDoPedido:0, recebimentos:[], totalRecebido:0, troco:0
+                            }
+                        );
+                    }
+
+                    var vNumero = this.pedidoAtual;
+                    var i = 0;
+                    while(i < this.produtos.length){
+                        if(this.produtos[i].id == id_produto){
+                            this.pedidos[vNumero-1].itens.push(
+                                {
+                                    quantidade: this.quantidadeSelecionada, produto: this.produtos[i].nome, valorUnitario: this.produtos[i].preco, subTotal: (this.quantidadeSelecionada * this.produtos[i].preco ), imagem:this.produtos[i].imagem, descricao:this.produtos[i].descricao
+                                }
+                            );
+                        }
+                        i++;
+                    }
+
+                    this.CalcularTotalDoPedido(this.pedidoAtual-1);
+                    
+                },
+                SelecionarCategoria: function(valorSelecionado){
+                    this.exibirSessao = 'produtos';
+                    this.categoriaSelecionada = valorSelecionado;
+                    switch (valorSelecionado) {
+                        case 'Ofertas':
+                            this.classeCategoria = { Ofertas:"nav-link active", Hamburgueres:"nav-link", Acompanhamentos:"nav-link", Bebidas:"nav-link", Sobremesas:"nav-link", Pedidos:"nav-link" }
+                            break;
+                        case 'Hamburgueres':
+                            this.classeCategoria = { Ofertas:"nav-link", Hamburgueres:"nav-link active", Acompanhamentos:"nav-link", Bebidas:"nav-link", Sobremesas:"nav-link", Pedidos:"nav-link" }
+                            break;
+                        case 'Acompanhamentos':
+                            this.classeCategoria = { Ofertas:"nav-link", Hamburgueres:"nav-link", Acompanhamentos:"nav-link active", Bebidas:"nav-link", Sobremesas:"nav-link", Pedidos:"nav-link" }
+                            break;
+                        case 'Bebidas':
+                            this.classeCategoria = { Ofertas:"nav-link", Hamburgueres:"nav-link", Acompanhamentos:"nav-link", Bebidas:"nav-link active", Sobremesas:"nav-link", Pedidos:"nav-link" }
+                            break;
+                        case 'Sobremesas':
+                            this.classeCategoria = { Ofertas:"nav-link", Hamburgueres:"nav-link", Acompanhamentos:"nav-link", Bebidas:"nav-link", Sobremesas:"nav-link active", Pedidos:"nav-link" }
+                            break;
+                        case 'Pedidos':
+                            this.classeCategoria = { Ofertas:"nav-link", Hamburgueres:"nav-link", Acompanhamentos:"nav-link", Bebidas:"nav-link", Sobremesas:"nav-link", Pedidos:"nav-link active" }
+                            this.exibirSessao = 'pedidos';
+                            break;
+                        default:
+                            this.classeCategoria = { Ofertas:"nav-link disabled", Hamburgueres:"nav-link disabled", Acompanhamentos:"nav-link disabled", Bebidas:"nav-link disabled", Sobremesas:"nav-link disabled", Pedidos:"nav-link disabled" }
+                            break;
+                    }
+                },
+                SelecionarSessao: function(valor){
+                    this.SelecionarCategoria('Pedidos');
+                    this.exibirSessao = valor;
+                },
+                SelecionarQuantidade: function(quantidade){
+                    this.quantidadeSelecionada = parseInt(quantidade.target.innerText);
+                },
+                SelecionarPedidoAnterior: function(){
+                    if((this.pedidoAtual - 1) > 0)
+                        this.pedidoAtual--;
+                },
+                SelecionarPedidoProximo: function(){
+                    if((this.pedidoAtual) < this.pedidos.length)
+                        this.pedidoAtual++;
+                },
+                CalcularTotalDoPedido: function(id_pedido){
+                    var valorTotalizado = 0;
+                    var i = 0;
+                    while(i < this.pedidos[id_pedido].itens.length){
+                        valorTotalizado += this.pedidos[id_pedido].itens[i].subTotal;
+                        i++;
+                    }
+                    this.pedidos[id_pedido].totalDoPedido = valorTotalizado;
+                },
+                CalcularTotalRecebido: function(id_pedido){
+                    var valorTotalizado = 0;
+                    var i = 0;
+                    while(i < this.pedidos[id_pedido].recebimentos.length){
+                        valorTotalizado += this.pedidos[id_pedido].recebimentos[i].valor;
+                        i++;
+                    }
+					
+                    this.pedidos[id_pedido].totalRecebido = valorTotalizado;
+					
+					if(this.pedidos[id_pedido].totalRecebido >= this.pedidos[id_pedido].totalDoPedido){
+						this.pedidos[id_pedido].status = 'Pedido Encerrado';
+					}
+                },
+                CalcularTrocoReceber: function(id_pedido){
+                    this.pedidos[id_pedido].troco = (this.pedidos[id_pedido].totalRecebido - this.pedidos[id_pedido].totalDoPedido);
+                },
+                CalcularSaldoRestante: function(){
+                    valor = 0.00;
+                    if(this.pedidoAtual > 0){
+                        id_pedido = this.pedidoAtual - 1;
+                        valor = this.pedidos[id_pedido].totalDoPedido - this.pedidos[id_pedido].totalRecebido;
+                    }
+					if(valor < 0.00){
+						valor = 0.00
+					}
+                    return valor.toFixed(2);
+                },
+				TecladoValorDigitado: function(digit_value) {
+					this.valorDigitado += digit_value;
+					this.valorDigitado = parseInt(this.valorDigitado);
+				},
+				TecladoValorDigitadoDel: function() {
+					this.valorDigitado = 0.00;
+				},
+				TecladoValorDigitadoEnt: function() {
+					let digit_value = this.valorDigitado.toFixed(2) / 100;
+					this.valorDigitado = digit_value.toFixed(2);
+				},
+                FecharPedido: function(){
+                    id_pedido = this.pedidoAtual-1;
+                    if(this.pedidos[id_pedido].status != 'Pedido Encerrado'){
+                        this.pedidos[id_pedido].status = 'Pedido Encerrado';
+                        if(this.pedidos[id_pedido].totalRecebido < this.pedidos[id_pedido].totalDoPedido){
+                            var saldoDevedor = (this.pedidos[id_pedido].totalDoPedido - this.pedidos[id_pedido].totalRecebido);
+                            this.pedidos[id_pedido].recebimentos.push(
+                                { formaDePagamento:"Recebimento do valor", valor:saldoDevedor }
+                            );
+                        } else {
+
+                        }
+                        this.CalcularTotalRecebido(id_pedido);
+                        this.CalcularTrocoReceber(id_pedido);
+                    } else {
+                        alert('O pedido jé está encerrado!');
+                    }
+                },
+				RegistrarDinheiro: function() {
+					id_pedido = this.pedidoAtual-1;
+                    if(this.pedidos[id_pedido].status == 'Pedido Aberto'){
+						if(this.valorDigitado == 0.00){
+							alert('Informe o valor!');
+						} else {
+							saldoDevedor = (this.valorDigitado / 1);
+							this.pedidos[id_pedido].recebimentos.push(
+								{ formaDePagamento:"Dinheiro", valor:saldoDevedor }
+							);
+						}
+						this.valorDigitado = 0.00;
+                        this.CalcularTotalRecebido(id_pedido);
+                        this.CalcularTrocoReceber(id_pedido);
+                    } else {
+                        alert('O pedido jé está encerrado!');
+                    }
+				},
+				RegistrarDebito: function() {
+					id_pedido = this.pedidoAtual-1;
+                    if(this.pedidos[id_pedido].status == 'Pedido Aberto'){
+						var saldo_calc = (this.pedidos[id_pedido].totalRecebido + (this.valorDigitado/1)) / 1;
+                        if((saldo_calc) <= this.pedidos[id_pedido].totalDoPedido){
+							var saldoDevedor = 0.00;
+							if(this.valorDigitado == 0.00){
+								saldoDevedor = (this.pedidos[id_pedido].totalDoPedido - this.pedidos[id_pedido].totalRecebido);
+								this.pedidos[id_pedido].status = 'Pedido Encerrado';
+							} else {
+								saldoDevedor = (this.valorDigitado / 1);
+							}
+                            this.pedidos[id_pedido].recebimentos.push(
+                                { formaDePagamento:"Débito", valor:saldoDevedor }
+                            );
+                        } else {
+							alert('O valor a receber '+saldo_calc+' é maior que o total do pedido!');
+                        }
+						this.valorDigitado = 0.00;
+                        this.CalcularTotalRecebido(id_pedido);
+                        this.CalcularTrocoReceber(id_pedido);
+                    } else {
+                        alert('O pedido jé está encerrado!');
+                    }
+				},
+				RegistrarCredito: function() {
+					id_pedido = this.pedidoAtual-1;
+                    if(this.pedidos[id_pedido].status == 'Pedido Aberto'){
+						var saldo_calc = (this.pedidos[id_pedido].totalRecebido + (this.valorDigitado/1)) / 1;
+                        if((saldo_calc) <= this.pedidos[id_pedido].totalDoPedido){
+							var saldoDevedor = 0.00;
+							if(this.valorDigitado == 0.00){
+								saldoDevedor = (this.pedidos[id_pedido].totalDoPedido - this.pedidos[id_pedido].totalRecebido);
+								this.pedidos[id_pedido].status = 'Pedido Encerrado';
+							} else {
+								saldoDevedor = (this.valorDigitado / 1);
+							}
+                            this.pedidos[id_pedido].recebimentos.push(
+                                { formaDePagamento:"Crédito", valor:saldoDevedor }
+                            );
+                        } else {
+							alert('O valor a receber '+saldo_calc+' é maior que o total do pedido!');
+                        }
+						this.valorDigitado = 0.00;
+                        this.CalcularTotalRecebido(id_pedido);
+                        this.CalcularTrocoReceber(id_pedido);
+                    } else {
+                        alert('O pedido jé está encerrado!');
+                    }
+				},
+				RegistrarRefeicao: function() {
+					id_pedido = this.pedidoAtual-1;
+                    if(this.pedidos[id_pedido].status == 'Pedido Aberto'){
+						if(this.valorDigitado == 0.00){
+							alert('Informe o valor!');
+						} else {
+							saldoDevedor = (this.valorDigitado / 1);
+							this.pedidos[id_pedido].recebimentos.push(
+								{ formaDePagamento:"Refeição", valor:saldoDevedor }
+							);
+						}
+						this.valorDigitado = 0.00;
+                        this.CalcularTotalRecebido(id_pedido);
+                        this.CalcularTrocoReceber(id_pedido);
+                    } else {
+                        alert('O pedido jé está encerrado!');
+                    }
+				},
+                cancelarPedido: function(id_pedido){
+                    var vNumero = id_pedido-1;
+                    console.log('vNumero:'+vNumero);
+                    if(this.pedidos[vNumero].status == "Pedido Aberto"){
+                        this.pedidos[vNumero].status = "Pedido Cancelado";
+                    }
+                },
+                removerItemDoPedido: function(id_pedido, nome_produto){
+                    var vNumero = id_pedido - 1;
+                    if(this.pedidos[vNumero].status == "Pedido Aberto"){
+                        posicao = 0;
+                        var i = 0;
+                        while(i < this.pedidos[vNumero].itens.length){
+                            if(this.pedidos[vNumero].itens[i].produto == nome_produto){
+                                posicao = i;
+                                break;
+                            }
+                            i++;
+                        }
+                        this.pedidos[vNumero].itens.pop(posicao,1);
+                        this.CalcularTotalDoPedido(id_pedido);
+                    }
+                }
+            },
+			filters:{
+				filCurrency: function(value) {
+					return value.toFixed(2);
+				}
+			}
+        })
+    </script>
+
+    <!-- Bootstrap -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
+</body>
+</html>
