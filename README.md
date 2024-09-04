@@ -21,7 +21,12 @@ Os pedidos finalizados serão mantidos em sessão no navegador. Para efeito did�
 <table>
   <tr>
     <td>
-      <img alt="Infraestrutura" title="#Infraestrutura" src="./assets/vueburger_painel.PNG" />
+      <img alt="Infraestrutura" title="#Infraestrutura" src="./assets/vueburger_painel.PNG" href="http://vueburguer.free.nf/"/>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <a href="http://vueburguer.free.nf/" target="_blank">VER Demonstra&ccedil;&atilde;o</a>
     </td>
   </tr>
 </table>
