@@ -26,7 +26,7 @@ Os pedidos finalizados serão mantidos em sessão no navegador. Para efeito did�
   </tr>
   <tr>
     <td>
-      <a href="http://vueburguer.free.nf/" target="_blank">VER Demonstra&ccedil;&atilde;o</a>
+      <a href="http://vueburguer.portalsiti.free.nf/" target="_blank">VER Demonstra&ccedil;&atilde;o</a>
     </td>
   </tr>
 </table>
